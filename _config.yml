@@ -1,0 +1,11 @@
+title: A F T E R - I M A G E
+email: hyunwoo9283@gmail.com
+description: kbss27-wiki
+# baseurl: "" # the subpath of your site, e.g. /blog/
+# url: "http://yourdomain.com" # the base hostname & protocol for your site
+github_username: kbss27
+permalink: /:year/:month/:day/:title/
+viewsourceroot: https://github.com/kbss27/kbss27.github.io/blob/master/
+newsourceroot: https://github.com/kbss27/kbss27.github.io/new/master
+markdown: kramdown
+highlighter: rouge
