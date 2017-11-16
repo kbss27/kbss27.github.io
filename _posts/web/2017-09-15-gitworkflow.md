@@ -1,8 +1,8 @@
 ---
 layout: post
-title: "Java Web Programming Week 1"
+title: "git workflow"
 date: 2017-09-15
-categories: study
+categories: web
 ---
 
 * content
