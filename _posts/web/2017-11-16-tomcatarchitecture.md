@@ -15,7 +15,7 @@ categories: web
 
 ### Tomcat Directory
 
-![_config.yml](/media/web/tomcatArchitecture.png)
+![_config.yml](/media/web/tomcatArchitecture.PNG)
 
 위와 같은 톰캣 디렉토리 구조에서 중점적으로 봐야 할 부분은 bin, conf, lib, webapps 정도가 되겠다.
 간단하게 bin같은 경우는 tomcat을 시작하거나 중단할때 많이 사용하고, webapps는 배포 디렉토리로 war파일을 만들어서 안에 넣으면 하나의 context로서
@@ -23,7 +23,7 @@ categories: web
 
 ### Tomcat Architecture
 
-![_config.yml](/media/web/tomcatArchitecture2.png)
+![_config.yml](/media/web/tomcatarchitecture2.png)
 
 server는 톰캣 자체로 볼 수 있다. 하나의 JVM에는 톰캣 instance가 하나만 존재할 수 있다. server안에는 여러개의 service가 있을 수 있는데, service의 주요 역할은 connector를 정의하여 engine에 연결시켜주는 것이다. 각 service는 하나의 엔진만을 가지고 있으므로 service와 engine은 같은 의미로 봐도 무방하다. connector에 정의된 곳으로 client의 request가 오면 host를 찾아 context로 해당 request를 보내주게 된다. host는 사용자가 여러개를 정의해도 되며, default가 localhost로 되어있다.  
 conf폴더 안에 server.xml을 보면 위의 아키텍쳐가 그대로 정의되어 있다.

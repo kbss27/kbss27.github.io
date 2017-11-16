@@ -56,7 +56,7 @@ Fetch : working copy까지 바꾸지 않고 local repository까지 하는데 fet
 pull은 fetch + merge.
 pull하면 워킹디렉토리까지 다 바뀐다.
 
-![_config.yml](/media/study/basic-remote-workflow.png)
+![_config.yml](/media/web/basic-remote-workflow.png)
 
 ~~~bash
 git init
