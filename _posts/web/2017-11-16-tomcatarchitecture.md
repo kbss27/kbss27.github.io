@@ -56,6 +56,7 @@ Catalina service는 8000번 port의 connector를 가지고 있다는 설정이�
 connector를 보면 port는 8000번 프로토콜은 HTTP/1.1이고 연결이 타임아웃 나는 시간이 20초로 설정되어있다. 그리고 SSL요청으로 들어오는 경우,
 8443으로 redirect하게 되어 있다. 예제에서는 8443 connector를 정의하지 않았지만 https의 SSL요청을 처리할 connector도 정의해줘야 한다.
 useBodyEncodingForURI을 true로 설정하면 뒤의 URIEncoding이 설정한 UTF-8로 인코딩을 하게 된다. 또한, 페이지의 로딩을 빠르게 하기 위한 방법으로 gzip압축을 사용하기 위해 compression을 on으로 설정하였고 해당 compressionMimeType을 정의하였다.  
+**JDK 1.8.0_151와 1.8.0_152를 쓰시는 분들은 compression설정을 하지 않는게 좋다. 해당 버전은 tomcat에서 gzip으로 compression되어 온 페이지를 decoding하지 못하는 [버그](https://bugs.openjdk.java.net/browse/JDK-8189788)가 있기 때문이다. '이것 때문에 왜 안되는거지? 하며 며칠 동안 고생했다... 설마 JDK 버그문제였을줄이야...'**   
 engine의 defaulthost는 localhost로 되어있다. 만약 host명이 일치하지 않는 URI가 들어오면 기본적으로 이 defaulthost로 host 연결이 된다.
 
 ```xml
@@ -75,3 +76,7 @@ localhost name을 가진 host의 appBase는 webapps이다. 위의 Directory 구�
   <context></context>
 </host>
 ```
+
+### Servlet
+
+위의 Tomcat Architecture를 보면 각 context마다 여러개의 servlet들을 가지고 있다. 사실 Catalina자체는 connector로 들어오는 request에 Servlet Container로 봐도 무방하다.
