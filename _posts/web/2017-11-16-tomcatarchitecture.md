@@ -79,4 +79,17 @@ localhost name을 가진 host의 appBase는 webapps이다. 위의 Directory 구�
 
 ### Servlet
 
-위의 Tomcat Architecture를 보면 각 context마다 여러개의 servlet들을 가지고 있다. 사실 Catalina자체는 connector로 들어오는 request에 Servlet Container로 봐도 무방하다.
+위의 Tomcat Architecture를 보면 각 context마다 여러개의 servlet들을 가지고 있다. 사실 Catalina자체는 Servlet Container로 봐도 무방하다.
+
+![_config.yml](/media/web/servletlifecycle.png)
+
+servlet container는 초기화 이후에 들어오는 request마다 thread를 생성해준다.
+threadpool을 사용하여 request마다 thread를 생성해준 뒤 http method에 따라 doGet(), doPost() 등 http method에 맞춘 메소드가 실행된다. 각 context에 있는 web.xml에 보면 servlet을 정의하는 부분이 있다.
+
+![_config.yml](/media/web/webservlet.png)
+
+servlet을 implement한 GenericServlet과 그것을 상속한 HttpServlet을 상속받아서 사용자가 Servlet class를 정의해서 request를 처리할 수 있다. 구조는 아래와 같다.
+
+![_config.yml](/media/web/servletinheritance.png)
+
+예를 들어, modify.do라는 post request가 온다면 servlet container가 이 request에 맞춰 thread를 생성하고 servlet mapping에 쓰인 url mapping에 따라 SimpleBoardServlet이 이 request를 처리하게 된다. SimpleBoardServlet안에 사용자가 오버라이딩 해놓은 doPost가 이 request를 처리하게 된다.
