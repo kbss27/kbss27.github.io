@@ -146,3 +146,61 @@ equals메소드를 재정의하지않으면 모든 객체는 자기 자신하고
 이상적인 해시 함수는 서로 다른 객체들을 모든 가능한 해시 값에 균등하게 배분해야 한다.
 
 ------------------------------------------------------------------------------------
+
+규칙 45 : 지역 변수의 유효범위를 최소화하라
+
+지역 변수의 유효범위를 최소화하는 가장 강력한 기법은, 처음으로 사용하는곳에서 선언하는 것이다.
+while문보다 for문을 쓰는 것이 좋은 이유 : 변수의 scope가 while문 밖에 있기 때문에
+아래와 같이 실수를 해도 잡아내기 힘들 수 있다.
+
+```java
+Iterator<Element> i = c.iterator();
+while(i.hasNext()) {
+  doSomething(i.next());
+}
+
+Iterator<Element> i2 = c.iterator();
+while(i.hasNext()) {
+  doSomething(i2.next())
+}
+```
+
+반면에 for 문은 아래와 같이 변수 i의 scope가 for문 안에 있기 때문에 실수를 했을 때도
+바로 체크가 가능하다. 이러한 실수는 '복사해서 붙여넣기'를 할때 자주 일어난다.
+
+```java
+for(Iterator<Element> i = c.iterator(); i.hasNext();) {
+  doSomething(i.next());
+}
+```
+------------------------------------------------------------------------------------
+
+규칙 46 : for문보다는 for-each 문을 사용하라
+
+for-each문은 반복자나 첨자 변수를 완전히 제거해서 오류 가능성을 줄인다. 또한, 여러 컬렉션에 중첩되는 순환문을 만들어야 할 때 실수를 막아주고 더욱 코드를 간결하게 해준다.
+
+```java
+enum Face { ONE, TWO, THREE, FOUR, FIVE, SIX }
+...
+Collection<Face> faces = Arrays.asList(Face.values());
+for(Iterator<Face> i = faces.iterator(); i.hasNext();)
+  for(Iterator<Face> j = faces.iterator(); i.hasNext();)
+    System.out.println(i.next() + " " + j.next());
+```
+위의 코드에서 나타나는 실수는 아래 for-each문을 쓴다면 발생할 수 없다.
+
+```java
+for(Face face1 : faces)
+    for(Face face2 : faces)
+        System.out.println(face1 + " " + face2);
+```
+
+위와 같이 실수도 발생하지 않고 코드도 간결하게 바꿀 수 있다.
+for-each문은 전통적인 for문에 비해 명료하고 버그 발생 가능성도 적으며, 성능도 for문에 뒤지지 않기 떄문에, 가능하면 for-each문을 쓰는것이 좋다.  
+하지만 for-each문을 적용할 수 없는 세 가지 경우가 있다.
+
+1. 필터링 : 컬렉션 순회 중 특정 원소를 삭제해야 할 경우, reove 메소드를 호출해야 하기 때문에 반복자를 명시적으로 사용해야 함.
+
+2. 변환 : 리스트나 배열 순환 중, 그 원소 가운데 일부 또는 전부의 값을 변경해야 한다면, 원소 값을 수정하기 위해 리스트 반복자나 배열 첨자가 필요하다.
+
+3. 병렬 순회 : 여러 컬렉션을 병렬적으로 순회하는 경우
