@@ -447,6 +447,7 @@ exchange와 queue 사이의 관계를 정의하는것이 binding이며, exchange
 ![_config.yml](/media/middleware/rabbitmq/rabbitmq_routing_1.png){: .center} 
 
 이번에는 가장 많이 쓰이는 Exchange type direct에 대해서 알아보겠다. 앞서 direct type은 지정된 routingKey를 가진 queue에만 메세지를 전달한다고 하였다.  
+위의 그림에서는 routingKey가 orange인 메세지는 Q1, black과 green은 Q2로 전달된다.  
 다음과 같이 queue를 binding할 때, routingKey를 명시적으로 적어주면, 해당 routingKey와 함께 exchange에 발행된 메세지는 binding된 queue로 메세지를 전달한다.
 ```java
 channel.queueBind(queueName, EXCHANGE_NAME, "black");
