@@ -89,7 +89,7 @@ Consumer는 producer와는 다르게 메시지를 listening하고 있어야 한�
 이번에는 하나의 queue를 여러 consumer가 consuming하는 상황에 대해 살펴보겠다.  
 여기서는 hello queue하나를 두 개의 consumer가 consuming 하는 상황을 연출해보았다.
 
-***1. Queue에 있는 message가 처리하는데 오래 걸리는 경우***  
+***Queue에 있는 message가 처리하는데 오래 걸리는 경우***  
 Message 중에 처리작업이 오래걸리는 message가 있을 수 있다. 실제로 처리하는데 오래걸리는 작업처럼 보이기 위해 Consumer에서 . 하나당 1초씩 Thread sleep을 걸어보겠다.
 
 **Producer**
@@ -335,3 +335,188 @@ public class TaskTwo implements TaskExecutable {
 이제 consumer들이 더욱 효율적이게 message를 병렬로 처리할 수 있게 되었고, queue와 message에 대한 안정성 또한 가지게 되었다.
 
 ### 3. Publish / Subscribe
+
+지금까지의 가정은 하나의 메세지는 하나의 consumer에게 전달된다는 것이었다. 이번에는 publish/subscribe 패턴처럼 하나의 메세지를 여러 consumer에게 전달해 보겠다.  
+rabbitmq에서 메시징 모델의 중심 개념은 producer는 결코 어떠한 메세지라도 큐에 직접 전송하지 않는다는 것이다. producer는 오직 exchange에 메세지를 전송하고, exchange를 통해서 메세지는 queue로 전달된다.  
+이전 예제들에서 exchange를 알지 못해도 다음과 같이 publishing이 가능했던 이유는 exchange queue를 명시하는 첫 번째 파라미터가 ""로 되어있기 떄문이었다.  
+""는 default exchange(nameless exchage)를 의미하고, exchange queue에 ""를 명시하면, default exchange를 거쳐 queue로 바로 메세지를 보내게 된다.
+
+```java
+channel.basicPublish("", QUEUE_NAME, null, message.getBytes());
+```
+
+***Exchange Type***
+
+exchange의 type은 다음과 같다.
+![_config.yml](/media/middleware/rabbitmq/rabbitmq_exchange_type.png){: .center}  
+우선 하나의 메세지를 여러 consumer에게 전달하기 위해서 fanout 타입을 사용하겠다.  
+
+**Producer**
+```java
+public class TaskThree implements TaskExecutable {
+
+    private static final String EXCHANGE_NAME = "logs";
+
+    public void executeTask(List<String> args, ConnectionFactory factory) throws IOException, TimeoutException {
+
+        String message = args.size() < 1 ? "info: Hello World!" :
+                String.join(" ", args);
+
+        try(Connection connection = factory.newConnection();
+            Channel channel = connection.createChannel()) {
+            channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
+
+            channel.basicPublish(EXCHANGE_NAME, "", null, message.getBytes("UTF-8"));
+            System.out.println(" [x] Sent'" + message + "'");
+        }
+    }
+}
+```
+로그를 발생시키면 해당 로그를 여러곳에서 consuming하고 있는 구조의 간단한 로그시스템이라고 생각해보자.
+```java
+channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
+```
+위와 같이 exchange를 fanout type으로 생성해주고
+```java
+channel.basicPublish(EXCHANGE_NAME, "", null, message.getBytes("UTF-8"));
+```
+queue이름을 명시해주지 않고, exchange만 명시해주고 메세지를 발행했다.  
+producer와 consumer사이에서 queue이름을 명시적으로 정해주고 queue의 durability를 관리해주는것이 기본적으로 중요하다.   
+하지만, 지금과 같은 간단한 로깅 시스템은 모든 로그메시지를 받는게 중요하고, 이전 메시지는 중요하지 않고, 현재 계속해서 발생하고 있는 메시지에 더 초점을 맞춘다. 이러한 상황에서는 다음과 같이 랜덤한 queue를 생성하여, 필요할때마다 랜덤한 queue이름으로 consumer를 늘리고 줄이면서, 탄력적이게 운용할 수 있는 방식이 좋다.
+```java
+String queueName = channel.queueDeclare().getQueue();
+```
+
+**Consumer**
+```java
+public class TaskThree implements TaskExecutable {
+
+    private static final String EXCHANGE_NAME = "logs";
+
+    public void executeTask(List<String> args, ConnectionFactory factory) throws IOException, TimeoutException {
+
+        Connection connection = factory.newConnection();
+        Channel channel = connection.createChannel();
+
+        channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
+        String queueName = channel.queueDeclare().getQueue();
+        channel.queueBind(queueName, EXCHANGE_NAME, "");
+
+        System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+
+        Consumer consumer = new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+                String message = new String(body, "UTF-8");
+                System.out.println(" [x] Received '" + message + "'");
+            }
+        };
+        channel.basicConsume(queueName, true, consumer);
+    }
+}
+```
+
+consumer 역시 type을 fanout으로 하여 exchange를 생성하고, queue이름을 random으로 하여 queue를 생성하여 exchange와 binding한다.  
+이제 여러곳에서 consumer를 띄우면 logs exchange에 모두 바인딩되어 발생하는 로그를 받게 된다.  
+
+exchange와 queue 사이의 관계를 정의하는것이 binding이며, exchange가 아무 queue에도 binding되어 있지 않다면, message는 버려진다.
+
+***consumer 1***
+
+```bash
+ [*] Waiting for messages. To exit press CTRL+C
+ [x] Received 'info:HelloWorld!'
+```
+
+***consumer 2***
+
+```bash
+ [*] Waiting for messages. To exit press CTRL+C
+ [x] Received 'info:HelloWorld!'
+```
+
+***consumer 3***
+
+```bash
+ [*] Waiting for messages. To exit press CTRL+C
+ [x] Received 'info:HelloWorld!'
+```
+
+### 4. Routing
+
+![_config.yml](/media/middleware/rabbitmq/rabbitmq_routing_1.png){: .center} 
+
+이번에는 가장 많이 쓰이는 Exchange type direct에 대해서 알아보겠다. 앞서 direct type은 지정된 routingKey를 가진 queue에만 메세지를 전달한다고 하였다.  
+다음과 같이 queue를 binding할 때, routingKey를 명시적으로 적어주면, 해당 routingKey와 함께 exchange에 발행된 메세지는 binding된 queue로 메세지를 전달한다.
+```java
+channel.queueBind(queueName, EXCHANGE_NAME, "black");
+```
+만약 여러 queue에서 같은 routingKey를 사용하게 된다면, fanout과 같은 방식처럼 사용될 수도 있다.
+![_config.yml](/media/middleware/rabbitmq/rabbitmq_routing_2.png){: .center}  
+
+**Producer**
+```java
+public class TaskFour implements TaskExecutable {
+
+    private static final String EXCHANGE_NAME = "direct_color";
+
+    public void executeTask(List<String> args, ConnectionFactory factory) throws IOException, TimeoutException {
+
+        try(Connection connection = factory.newConnection();
+            Channel channel = connection.createChannel()) {
+            channel.exchangeDeclare(EXCHANGE_NAME, "direct");
+
+            String color = getColor(args);
+            String message = getMessage();
+
+            channel.basicPublish(EXCHANGE_NAME, color, null, message.getBytes("UTF-8"));
+            System.out.println(" [x] Sent '" + color + "':'" + message + "'");
+        }
+    }
+
+    private static String getColor(List<String> strings) {
+        if (strings.size() < 1)
+            return "orange";
+        return strings.get(0);
+    }
+
+    private static String getMessage() {
+        return "RabbitMq Routing";
+    }
+}
+```
+
+**Consumer**
+```java
+public class TaskFour implements TaskExecutable {
+
+    private static final String EXCHANGE_NAME = "direct_color";
+
+    public void executeTask(List<String> args, ConnectionFactory factory) throws IOException, TimeoutException {
+
+        Connection connection = factory.newConnection();
+        Channel channel = connection.createChannel();
+
+        channel.exchangeDeclare(EXCHANGE_NAME, "direct");
+        String queueName = channel.queueDeclare().getQueue();
+
+        if (args.size() < 1) {
+            System.err.println("[orange] [black] [green]");
+            System.exit(1);
+        }
+
+        for (String color : args) {
+            channel.queueBind(queueName, EXCHANGE_NAME, color);
+        }
+        System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+        Consumer consumer = new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+                String message = new String(body, "UTF-8");
+                System.out.println(" [x] Received '" + message + "'");
+            }
+        };
+        channel.basicConsume(queueName, true, consumer);
+    }
+}
+```
