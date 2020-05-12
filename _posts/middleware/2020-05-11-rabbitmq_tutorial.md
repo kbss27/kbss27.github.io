@@ -31,7 +31,8 @@ public class ArgumentEvent implements ApplicationRunner {
 
 ### 1. Hello World
 
-제일 처음으로 간단하게 message를 전송하고 받아보겠다.  
+![_config.yml](/media/middleware/rabbitmq/rabbitmq_hello_world.png){: .center}  
+제일 처음으로 위와 같이 간단하게 message를 전송하고 받아보겠다.  
 
 **Producer**
 ```java
@@ -86,6 +87,7 @@ Consumer는 producer와는 다르게 메시지를 listening하고 있어야 한�
 
 ### 2. Work Queues
 
+![_config.yml](/media/middleware/rabbitmq/rabbitmq_work_queue.png){: .center}  
 이번에는 하나의 queue를 여러 consumer가 consuming하는 상황에 대해 살펴보겠다.  
 여기서는 hello queue하나를 두 개의 consumer가 consuming 하는 상황을 연출해보았다.
 
@@ -336,6 +338,7 @@ public class TaskTwo implements TaskExecutable {
 
 ### 3. Publish / Subscribe
 
+![_config.yml](/media/middleware/rabbitmq/rabbitmq_publish_subscribe.png){: .center}  
 지금까지의 가정은 하나의 메세지는 하나의 consumer에게 전달된다는 것이었다. 이번에는 publish/subscribe 패턴처럼 하나의 메세지를 여러 consumer에게 전달해 보겠다.  
 rabbitmq에서 메시징 모델의 중심 개념은 producer는 결코 어떠한 메세지라도 큐에 직접 전송하지 않는다는 것이다. producer는 오직 exchange에 메세지를 전송하고, exchange를 통해서 메세지는 queue로 전달된다.  
 이전 예제들에서 exchange를 알지 못해도 다음과 같이 publishing이 가능했던 이유는 exchange queue를 명시하는 첫 번째 파라미터가 ""로 되어있기 떄문이었다.  
@@ -570,7 +573,7 @@ queue이름을 명시적으로 적어주지 않았기 때문에, 이전 예제�
 * \* (star)는 정확히 1개의 단어를 치환할 수 있다.
 * \# (hash)는 0개나 여러개의 단어를 치환할 수 있다.
 
-exchange type topic애서 위와 같은 규칙을 적용하여 패턴 바인딩을 정의하면, 여러개의 조건에 맞춰 routing을 하는것이 가능하다.
+exchange type topic에서 위와 같은 규칙을 적용하여 패턴 바인딩을 정의하면, 여러개의 조건에 맞춰 routing을 하는것이 가능하다.
 
 consumer1에서 queue를 생성하고 해당 queue를 routingKey \*.orange.\*로 exchange에 binding하고,  
 consumer2에서 queue를 생성하고 해당 queue를 routingKey \*.\*.rabbit, lazy.\#로 exchange에 binding하겠다.  
