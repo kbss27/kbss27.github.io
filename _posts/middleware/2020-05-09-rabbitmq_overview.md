@@ -34,3 +34,6 @@ Message Broker는 우체국과 같다고 볼 수 있다. 메일을 우체통에 
 1. Producer가 Message를 publishing한다. 이 message는 exchange queue에 전달된다.
 2. exchange queue에 도착한 메시지는 설정된 exchange type(fanout, direct, topic, header)에 맞춰 binding된 queue에 메시지를 전송한다.
 3. queue에 메세지가 쌓이게 되고 queue를 consuming하고 있는 consumer는 해당 message를 가져와서 처리한다.
+
+다음 장에서 RabbitMq Tutorial을 진행하면서 rabbitmq에 대해 더욱 자세히 알아보겠다. 
+[RabbitMq Tutorial](https://kbss27.github.io/2020/05/11/rabbitmq_tutorial/)  
