@@ -448,12 +448,18 @@ exchange와 queue 사이의 관계를 정의하는것이 binding이며, exchange
 
 이번에는 가장 많이 쓰이는 Exchange type direct에 대해서 알아보겠다. 앞서 direct type은 지정된 routingKey를 가진 queue에만 메세지를 전달한다고 하였다.  
 위의 그림에서는 routingKey가 orange인 메세지는 Q1, black과 green은 Q2로 전달된다.  
-다음과 같이 queue를 binding할 때, routingKey를 명시적으로 적어주면, 해당 routingKey와 함께 exchange에 발행된 메세지는 binding된 queue로 메세지를 전달한다.
+다음과 같이 queue를 binding할 때, routingKey를 명시적으로 적어주면, 해당 routingKey와 함께 exchange에 발행된 메세지는 binding된 queue로 메세지를 전달한다. 앞선 예제에서 fanout의 경우 routingKey를 ""로 해주었지만, direct의 경우 다음과 같이 routingKey를 명시적으로 적어준다.
 ```java
 channel.queueBind(queueName, EXCHANGE_NAME, "black");
 ```
 만약 여러 queue에서 같은 routingKey를 사용하게 된다면, fanout과 같은 방식처럼 사용될 수도 있다.
 ![_config.yml](/media/middleware/rabbitmq/rabbitmq_routing_2.png){: .center}  
+
+consumer1에서 queue를 생성하고 해당 queue를 routingKey orange로 exchange에 binding하고,  
+consumer2에서 queue를 생성하고 해당 queue를 routingKey black, green로 exchange에 binding하겠다.  
+
+producer로 message에 routingKey를 포함하여 exchange에 보내겠다.  
+결과를 확인해보자.
 
 **Producer**
 ```java
@@ -468,7 +474,7 @@ public class TaskFour implements TaskExecutable {
             channel.exchangeDeclare(EXCHANGE_NAME, "direct");
 
             String color = getColor(args);
-            String message = getMessage();
+            String message = getMessage(color);
 
             channel.basicPublish(EXCHANGE_NAME, color, null, message.getBytes("UTF-8"));
             System.out.println(" [x] Sent '" + color + "':'" + message + "'");
@@ -481,10 +487,18 @@ public class TaskFour implements TaskExecutable {
         return strings.get(0);
     }
 
-    private static String getMessage() {
-        return "RabbitMq Routing";
+    private static String getMessage(String color) {
+        return "RabbitMq Routing Key - " + color;
     }
 }
+```
+```bash
+java -jar producer-0.0.1-SNAPSHOT.jar --task=taskfour --content=orange
+[x] Sent 'orange':'RabbitMq Routing Key - orange'
+java -jar producer-0.0.1-SNAPSHOT.jar --task=taskfour --content=black
+[x] Sent 'black':'RabbitMq Routing Key - black'
+java -jar producer-0.0.1-SNAPSHOT.jar --task=taskfour --content=green
+[x] Sent 'green':'RabbitMq Routing Key - green'
 ```
 
 **Consumer**
@@ -521,3 +535,163 @@ public class TaskFour implements TaskExecutable {
     }
 }
 ```
+
+***consumer 1***
+
+```bash
+java -jar consumer-0.0.1-SNAPSHOT.jar --task=taskfour --content=orange
+[*] Waiting for messages. To exit press CTRL+C
+[x] Received 'RabbitMq Routing Key - orange'
+```
+
+***consumer 2***
+
+```bash
+java -jar consumer-0.0.1-SNAPSHOT.jar --task=taskfour --content=black --content=green
+[*] Waiting for messages. To exit press CTRL+C
+[x] Received 'RabbitMq Routing Key - black'
+[x] Received 'RabbitMq Routing Key - green'
+```
+
+routingKey에 binding된 queue로 message가 전달되는 것을 확인할 수 있다.  
+rabbitmq Admin UI에서 queue의 바인딩 정보를 확인해 보자.
+
+![_config.yml](/media/middleware/rabbitmq/rabbitmq_direct1.png){: .center}
+![_config.yml](/media/middleware/rabbitmq/rabbitmq_direct2.png){: .center}
+
+queue이름을 명시적으로 적어주지 않았기 때문에, 이전 예제와 같이 랜덤한 이름의 queue가 생성되었고,  
+각 consumer마다 channel의 정보와 queue의 binding정보도 한눈에 확인 할 수 있다.  
+
+### 5. Topic
+
+다음으로 여러개의 조건에 근거한 routing을 살펴보겠다.  
+![_config.yml](/media/middleware/rabbitmq/rabbitmq_topic.png){: .center}  
+
+* \* (star)는 정확히 1개의 단어를 치환할 수 있다.
+* \# (hash)는 0개나 여러개의 단어를 치환할 수 있다.
+
+exchange type topic애서 위와 같은 규칙을 적용하여 패턴 바인딩을 정의하면, 여러개의 조건에 맞춰 routing을 하는것이 가능하다.
+
+consumer1에서 queue를 생성하고 해당 queue를 routingKey \*.orange.\*로 exchange에 binding하고,  
+consumer2에서 queue를 생성하고 해당 queue를 routingKey \*.\*.rabbit, lazy.\#로 exchange에 binding하겠다.  
+
+producer로 message에 routingKey를 포함하여 exchange에 보내겠다.  
+결과를 확인해보자.
+
+**Producer**
+```java
+public class TaskFive implements TaskExecutable {
+
+    private static final String EXCHANGE_NAME = "topic_logs";
+
+    @Override
+    public void executeTask(List<String> args, ConnectionFactory factory) throws IOException, TimeoutException {
+        try (Connection connection = factory.newConnection();
+             Channel channel = connection.createChannel()) {
+
+            channel.exchangeDeclare(EXCHANGE_NAME, "topic");
+
+            String routingKey = getRouting(args);
+            String message = getMessage(routingKey);
+
+            channel.basicPublish(EXCHANGE_NAME, routingKey, null, message.getBytes("UTF-8"));
+            System.out.println(" [x] Sent '" + routingKey + "':'" + message + "'");
+        }
+    }
+
+    private String getRouting(List<String> strings) {
+        if (strings.size() < 1)
+            return "quick.orange.fox";
+        return strings.get(0);
+    }
+
+    private String getMessage(String rountingKey) {
+        return "RabbitMq Topic - " + rountingKey;
+    }
+}
+```
+
+**Consumer**
+```java
+public class TaskFive implements TaskExecutable {
+
+    private static final String EXCHANGE_NAME = "topic_logs";
+
+    @Override
+    public void executeTask(List<String> args, ConnectionFactory factory) throws IOException, TimeoutException {
+        Connection connection = factory.newConnection();
+        Channel channel = connection.createChannel();
+
+        channel.exchangeDeclare(EXCHANGE_NAME, "topic");
+        String queueName = channel.queueDeclare().getQueue();
+
+        if (args.size() < 1) {
+            System.err.println("Usage: ReceiveLogsTopic [binding_key]...");
+            System.exit(1);
+        }
+
+        for (String bindingKey : args) {
+            channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
+        }
+
+        System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+
+        Consumer consumer = new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+                String message = new String(body, "UTF-8");
+                System.out.println(" [x] Received '" +
+                        envelope.getRoutingKey() + "':'" + message + "'");
+            }
+        };
+        channel.basicConsume(queueName, true, consumer);
+    }
+}
+```
+```bash
+java -jar producer-0.0.1-SNAPSHOT.jar --task=taskfive --content=apple.orange.banana
+[x] Sent 'apple.orange.banana':'RabbitMq Topic - apple.orange.banana'
+java -jar producer-0.0.1-SNAPSHOT.jar --task=taskfive --content=apple.orange.
+[x] Sent 'apple.orange':'RabbitMq Topic - apple.orange.'
+java -jar producer-0.0.1-SNAPSHOT.jar --task=taskfive --content=.orange.
+[x] Sent '.orange.':'RabbitMq Topic - .orange.'
+
+java -jar producer-0.0.1-SNAPSHOT.jar --task=taskfive --content=..rabbit
+[x] Sent '..rabbit':'RabbitMq Topic - ..rabbit'
+java -jar producer-0.0.1-SNAPSHOT.jar --task=taskfive --content=lazy.
+[x] Sent 'lazy.':'RabbitMq Topic - lazy.'
+java -jar producer-0.0.1-SNAPSHOT.jar --task=taskfive --content=lazy.apple.banana
+[x] Sent 'lazy.apple.banana':'RabbitMq Topic - lazy.apple.banana'
+java -jar producer-0.0.1-SNAPSHOT.jar --task=taskfive --content=lazy
+[x] Sent 'lazy':'RabbitMq Topic - lazy'
+
+```
+
+***consumer 1***
+
+```bash
+java -jar consumer-0.0.1-SNAPSHOT.jar --task=taskfive --content="*.orange.*"
+[*] Waiting for messages. To exit press CTRL+C
+[x] Received 'apple.orange.banana':'RabbitMq Topic - apple.orange.banana'
+[x] Received 'apple.orange.':'RabbitMq Topic - apple.orange.'
+[x] Received '.orange.':'RabbitMq Topic - .orange.'
+```
+
+***consumer 2***
+
+```bash
+java -jar consumer-0.0.1-SNAPSHOT.jar --task=taskfive --content="*.*.rabbit" --content="lazy.#"
+[*] Waiting for messages. To exit press CTRL+C
+[x] Received '..rabbit':'RabbitMq Topic - ..rabbit'
+[x] Received 'lazy.':'RabbitMq Topic - lazy.'
+[x] Received 'lazy.apple.banana':'RabbitMq Topic - lazy.apple.banana'
+[x] Received 'lazy':'RabbitMq Topic - lazy'
+```
+
+routingKey에 binding된 pattern대로 message가 전달되는 것을 확인할 수 있다.  
+rabbitmq Admin UI에서 queue의 바인딩 정보를 확인해 보자.
+
+![_config.yml](/media/middleware/rabbitmq/rabbitmq_topic1.png){: .center}
+![_config.yml](/media/middleware/rabbitmq/rabbitmq_topic2.png){: .center}
+
+각각의 consumer와 연결된 queue의 정보와 binding된 topic pattern정보를 확인할 수 있다.
