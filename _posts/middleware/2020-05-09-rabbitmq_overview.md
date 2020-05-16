@@ -12,7 +12,7 @@ RabbitMq에 대해 간략하게 정리하자.
 
 ## RabbitMq Overview
 
-RabbitMq는 Message Broker이다. 요새는 Kafka를 많이 사용하지만, RabbitMq에서 제공해주는 Admin UI의 편리성과 메시지에 대한 모니터링의 편리함 때문에, 대량의 transaction이 발생하는 환경이나, 초당 100k 이상 event가 발생하는 환경 등을 제외하면, RabbitMq 도입을 우선적으로 검토하는 편이다.  
+RabbitMq는 Message Broker이다. 요새는 Kafka를 많이 사용하지만, RabbitMq에서 제공해주는 Management UI의 편리성과 메시지에 대한 모니터링의 편리함 때문에, 대량의 transaction이 발생하는 환경이나, 초당 100k 이상 event가 발생하는 환경 등을 제외하면, RabbitMq 도입을 우선적으로 검토하는 편이다.  
 Message Broker는 우체국과 같다고 볼 수 있다. 메일을 우체통에 넣으면서, 우체부가 수신자에게 메일을 배달해 줄것이라 확신할 수 있는 것처럼, rabbitmq 자체는
 우체통, 우체국, 그리고 우체부의 역할을 한다.
 
@@ -35,5 +35,6 @@ Message Broker는 우체국과 같다고 볼 수 있다. 메일을 우체통에 
 2. exchange queue에 도착한 메시지는 설정된 exchange type(fanout, direct, topic, header)에 맞춰 binding된 queue에 메시지를 전송한다.
 3. queue에 메세지가 쌓이게 되고 queue를 consuming하고 있는 consumer는 해당 message를 가져와서 처리한다.
 
-다음 장에서 RabbitMq Tutorial을 진행하면서 rabbitmq에 대해 더욱 자세히 알아보겠다. 
-[RabbitMq Tutorial](https://kbss27.github.io/2020/05/11/rabbitmq_tutorial/)  
+Next Posting : [RabbitMq 설치](https://kbss27.github.io/2020/05/11/rabbitmq_install/)  
+Next Posting : [RabbitMq Tutorial](https://kbss27.github.io/2020/05/11/rabbitmq_tutorial/)  
+Next Posting : [RabbitMq Clustering](https://kbss27.github.io/2020/05/11/rabbitmq_clustering/)

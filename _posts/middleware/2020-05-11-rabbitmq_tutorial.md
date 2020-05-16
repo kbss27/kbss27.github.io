@@ -224,7 +224,7 @@ basic ack을 실수로 잊어버리고 안보내는 경우가 있을 수 있다.
  ```bash
 sudo rabbitmqctl list_queues name messages_ready messages_unacknowledged
 ```
-개인적으로는 Admin ui에서 unack이 쌓이는 양과 속도를 보면 금방 캐치할 수 있다고 생각한다.
+개인적으로는 Management ui에서 unack이 쌓이는 양과 속도를 보면 금방 캐치할 수 있다고 생각한다.
 
 **Durability**
 
@@ -232,16 +232,17 @@ sudo rabbitmqctl list_queues name messages_ready messages_unacknowledged
 boolean durable = true;
 channel.queueDeclare(DURABLE_QUEUE_NAME, durable, false, false, null);
 ```
-rabbitmq를 재시작하거나, 종료하면 queue의 정보와 queue에 있던 message의 정보 모두 사라지게 된다. 이것을 방지하기 위해 queueDeclare시에 durable 설정을 true로 해주자. 이렇게 하면, queue정보를 디스크에서 가지고 있기 떄문에, rabbitmq가 예기치 못하게 종료되거나 재시작해도 해당 queue에 대한 정보를 보존할 수 있다. 하지만 여전히 message는 사라지게 된다.  
+rabbitmq를 재시작하거나, 종료하면 queue의 정보와 queue에 있던 message의 정보 모두 사라지게 된다. 이것을 방지하기 위해 queueDeclare시에 durable 설정을 true로 해주자. 이렇게 하면, queue정보를 디스크에서 가지고 있기 때문에, rabbitmq가 예기치 못하게 종료되거나 재시작해도 해당 queue에 대한 정보를 보존할 수 있다. 이제 queue에 대한 durability는 설정이 되었지만, message는 여전히 rabbitmq를 재시작하면 사라지고 있다.  
+이것을 방지하기 위해 message에 persistent설정을 해주자.  
 
 ```java
 import com.rabbitmq.client.MessageProperties;
 
 channel.basicPublish("", DURABLE_QUEUE_NAME, MessageProperties.PERSISTENT_TEXT_PLAIN, message.getBytes());
 ```
-위와 같이 메세지를 큐에 발행할 때, PERSISTENT설정을 해주면, 메세지는 디스크에 저장되어 보존된다. 하지만, 이러한 설정이 메세지 영속성을 100% 보장해주진 않는다.  
+위와 같이 메세지를 큐에 발행할 때, PERSISTENT설정을 해주면, 메세지 또한 디스크에 저장되어 보존된다. 하지만, 이러한 설정이 메세지 영속성을 100% 보장해주진 않는다.  
 rabbitmq가 메세지를 받고 저장하기까지 짧은 시간이 존재하고, 그 시간안에 문제가 발생해서 rabbitmq가 죽거나 재시작된다면, 해당 message의 영속성은 보장되지 않는다.  
-rabbitmq를 운영하면서 위와같이 큐와 메세지에 대한 durability를 설정하고 있는데, message영속성이 보장되지 않는 상황은 아직까지 맞닥뜨리지 못했다. 하지만 더욱 확실하게 보장하고 싶으면, Publisher Confirms를 읽고 적용해보자.
+rabbitmq를 운영하면서 위와같이 큐와 메세지에 대한 durability를 설정하고 있는데, message영속성이 보장되지 않는 상황은 아직까지 맞닥뜨리지 못했다. 하지만 더욱 확실하게 보장하고 싶으면, [Publisher Confirms](https://www.rabbitmq.com/tutorials/tutorial-seven-java.html)를 읽고 적용해보자.
 
 이제, 앞에서 설명한 Fair Dispatcher, Acknowledgement, Durability를 적용해보자.  
 
@@ -341,7 +342,7 @@ public class TaskTwo implements TaskExecutable {
 ![_config.yml](/media/middleware/rabbitmq/rabbitmq_publish_subscribe.png){: .center}  
 지금까지의 가정은 하나의 메세지는 하나의 consumer에게 전달된다는 것이었다. 이번에는 publish/subscribe 패턴처럼 하나의 메세지를 여러 consumer에게 전달해 보겠다.  
 rabbitmq에서 메시징 모델의 중심 개념은 producer는 결코 어떠한 메세지라도 큐에 직접 전송하지 않는다는 것이다. producer는 오직 exchange에 메세지를 전송하고, exchange를 통해서 메세지는 queue로 전달된다.  
-이전 예제들에서 exchange를 알지 못해도 다음과 같이 publishing이 가능했던 이유는 exchange queue를 명시하는 첫 번째 파라미터가 ""로 되어있기 떄문이었다.  
+이전 예제들에서 exchange를 알지 못해도 다음과 같이 publishing이 가능했던 이유는 exchange queue를 명시하는 첫 번째 파라미터가 ""로 되어있기 때문이었다.  
 ""는 default exchange(nameless exchage)를 의미하고, exchange queue에 ""를 명시하면, default exchange를 거쳐 queue로 바로 메세지를 보내게 된다.
 
 ```java
@@ -455,9 +456,10 @@ exchange와 queue 사이의 관계를 정의하는것이 binding이며, exchange
 ```java
 channel.queueBind(queueName, EXCHANGE_NAME, "black");
 ```
-만약 여러 queue에서 같은 routingKey를 사용하게 된다면, fanout과 같은 방식처럼 사용될 수도 있다.
+만약 여러 queue에서 같은 routingKey를 사용하게 된다면, 아래 그림과 같이 fanout과 같은 방식처럼 사용될 수도 있다.
 ![_config.yml](/media/middleware/rabbitmq/rabbitmq_routing_2.png){: .center}  
 
+첫번째 그림과 같이 Q1, Q2에 각각 다른 routingKey를 설정하는 예제를 진행해 보겠다.  
 consumer1에서 queue를 생성하고 해당 queue를 routingKey orange로 exchange에 binding하고,  
 consumer2에서 queue를 생성하고 해당 queue를 routingKey black, green로 exchange에 binding하겠다.  
 
@@ -557,7 +559,7 @@ java -jar consumer-0.0.1-SNAPSHOT.jar --task=taskfour --content=black --content=
 ```
 
 routingKey에 binding된 queue로 message가 전달되는 것을 확인할 수 있다.  
-rabbitmq Admin UI에서 queue의 바인딩 정보를 확인해 보자.
+rabbitmq Management UI에서 queue의 바인딩 정보를 확인해 보자.
 
 ![_config.yml](/media/middleware/rabbitmq/rabbitmq_direct1.png){: .center}
 ![_config.yml](/media/middleware/rabbitmq/rabbitmq_direct2.png){: .center}
@@ -692,9 +694,14 @@ java -jar consumer-0.0.1-SNAPSHOT.jar --task=taskfive --content="*.*.rabbit" --c
 ```
 
 routingKey에 binding된 pattern대로 message가 전달되는 것을 확인할 수 있다.  
-rabbitmq Admin UI에서 queue의 바인딩 정보를 확인해 보자.
+rabbitmq Management UI에서 queue의 바인딩 정보를 확인해 보자.
 
 ![_config.yml](/media/middleware/rabbitmq/rabbitmq_topic1.png){: .center}
 ![_config.yml](/media/middleware/rabbitmq/rabbitmq_topic2.png){: .center}
 
-각각의 consumer와 연결된 queue의 정보와 binding된 topic pattern정보를 확인할 수 있다.
+각각의 consumer와 연결된 queue의 정보와 binding된 topic pattern정보를 확인할 수 있다.  
+
+공식 tutorial을 참고하여 예제를 진행하며, 간략하게 rabbitmq의 요소들에 대해 알아 보았다.  
+남아있는 RPC, Publisher Confirms는 추후에, 필요하다 생각되면 추가로 정리할 생각이다.  
+우선은 위의 예제들만으로도 rabbitMq의 개념에 대해 이해하는데 크게 무리는 없을것이다.  
+다음으로는 High Availability를 위한 Clustering, Mirroring에 대해 알아보겠다.
