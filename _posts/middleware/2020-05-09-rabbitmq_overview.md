@@ -35,6 +35,6 @@ Message Broker는 우체국과 같다고 볼 수 있다. 메일을 우체통에 
 2. exchange queue에 도착한 메시지는 설정된 exchange type(fanout, direct, topic, header)에 맞춰 binding된 queue에 메시지를 전송한다.
 3. queue에 메세지가 쌓이게 되고 queue를 consuming하고 있는 consumer는 해당 message를 가져와서 처리한다.
 
-Next Posting : [RabbitMq 설치](https://kbss27.github.io/2020/05/11/rabbitmq_install/)  
+Next Posting : [RabbitMq 설치](https://kbss27.github.io/2020/05/16/rabbitmq_install/)  
 Next Posting : [RabbitMq Tutorial](https://kbss27.github.io/2020/05/11/rabbitmq_tutorial/)  
-Next Posting : [RabbitMq Clustering](https://kbss27.github.io/2020/05/11/rabbitmq_clustering/)
+Next Posting : [RabbitMq Clustering](https://kbss27.github.io/2020/05/16/rabbitmq_clustering/)

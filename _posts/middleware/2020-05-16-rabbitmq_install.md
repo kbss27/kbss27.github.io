@@ -25,7 +25,7 @@ sudo yum install erlang으로 설치된 erlang 버전이 rabbitmq 버전과 호�
 [Erlang 버전 Yum Repo 설정 방법](https://github.com/rabbitmq/erlang-rpm)
 
 여기서는 현재 시점 rabbitmq 최신버전인 3.8.3을 기준으로 하겠다.  
-rabbitmq 3.8.3에 호환되는 Erlang 버전은 22.x이다.
+rabbitmq 3.8.3에 호환되는 Erlang 버전은 22.x이상이다.
 
 ```bash
 sudo vim /etc/yum.repos.d/rabbitmq_erlang.repo
