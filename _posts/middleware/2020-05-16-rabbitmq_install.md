@@ -59,6 +59,12 @@ sslcacert=/etc/pki/tls/certs/ca-bundle.crt
 metadata_expire=300
 ```
 
+```bash
+sudo yum install erlang
+```
+
+### 2. RabbitMq Install
+
 다음으로 RPM을 다운로드하자.
 ```bash
 wget https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.8.3/rabbitmq-server-3.8.3-1.el7.noarch.rpm
